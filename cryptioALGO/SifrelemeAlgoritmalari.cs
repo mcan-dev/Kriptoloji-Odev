@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Numerics;
 
 namespace cryptioALGO
 {
@@ -721,6 +722,70 @@ namespace cryptioALGO
 
             // 4. Bulunan ters matrisle HillSifrele'yi çağırarak metni çöz
             return HillSifrele(sifreliMetin, a_inv, b_inv, c_inv, d_inv);
+        }
+
+        // -----------------------------------------------------------------
+        // 8. RSA ŞİFRELEM
+        public static string RsaSifrele(string metin, int e, int n)
+        {
+            string islenecek = MetniTemizle(metin);
+            if (string.IsNullOrEmpty(islenecek)) return "";
+
+            StringBuilder sonuc = new StringBuilder();
+
+            foreach (char c in islenecek)
+            {
+                // Harfin alfabedeki sırasını al (M)
+                int m = Alfabe.IndexOf(c);
+
+                // Formül: C = M^e mod n
+                // BigInteger.ModPow, büyük sayılarla taşma olmadan modüler üs alma işlemi yapar
+                BigInteger sifreliKarakter = BigInteger.ModPow(m, e, n);
+
+                // Şifrelenmiş sayıları tire ile ayırarak yan yana ekle
+                sonuc.Append(sifreliKarakter.ToString() + "-");
+            }
+
+            // En sonda kalan fazladan tireyi (-) kaldır
+            if (sonuc.Length > 0)
+            {
+                sonuc.Length--;
+            }
+
+            return sonuc.ToString();
+        }
+        public static string RsaCoz(string sifreliMetin, int d, int n)
+        {
+            if (string.IsNullOrEmpty(sifreliMetin)) return "";
+
+            StringBuilder sonuc = new StringBuilder();
+
+            // Tirelere göre metni parçala ve sayılara ulaş
+            string[] sayilar = sifreliMetin.Split('-');
+
+            foreach (string sayiStr in sayilar)
+            {
+                if (int.TryParse(sayiStr, out int c))
+                {
+                    // Formül: M = C^d mod n
+                    BigInteger orijinalKarakter = BigInteger.ModPow(c, d, n);
+
+                    int index = (int)orijinalKarakter;
+
+                    // Bulunan indeks alfabe sınırlarındaysa harfe çevir
+                    if (index >= 0 && index < Alfabe.Length)
+                    {
+                        sonuc.Append(Alfabe[index]);
+                    }
+                    else
+                    {
+                        // Hatalı anahtar girilirse veya alfabe sınırını aşarsa dolgu karakteri at
+                        sonuc.Append('?');
+                    }
+                }
+            }
+
+            return sonuc.ToString();
         }
     }
 }

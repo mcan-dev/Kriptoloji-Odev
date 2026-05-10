@@ -3,7 +3,10 @@ using System.Net;
 using MailKit.Net.Imap;
 using MailKit.Search;
 using MimeKit;
-
+using System.Numerics;
+using System;
+using System.Linq;
+using System.Windows.Forms;
 
 namespace cryptioALGO
 {
@@ -21,11 +24,14 @@ namespace cryptioALGO
             cmbYontem.Items.Add("Permütasyon Þifreleme");
             // cmbYontem.Items.Add("kaydýrmalý Þifreleme");
             cmbYontem.Items.Add("Doðrusal Þifreleme");
-            cmbYontem.Items.Add("Yer deðiþtirme þifreleme");
+            cmbYontem.Items.Add("Yer Deðiþtirme Þifreleme"); // Yazým düzenlendi
             cmbYontem.Items.Add("Sayý Anahtarlý Þifreleme");
             cmbYontem.Items.Add("Vigenere Þifreleme");
             cmbYontem.Items.Add("Dört Kare Þifreleme");
             cmbYontem.Items.Add("Hill Þifreleme");
+
+            // 1. DÜZELTME: RSA ComboBox'a eklendi
+            cmbYontem.Items.Add("RSA Þifreleme");
 
             if (cmbYontem.Items.Count > 0)
                 cmbYontem.SelectedIndex = 0;
@@ -37,7 +43,6 @@ namespace cryptioALGO
             {
                 string girdi = txtGirdi.Text;
 
-                // ComboBox'tan seçim yapýlmadýysa hata vermemesi için kontrol
                 if (cmbYontem.SelectedItem == null)
                 {
                     MessageBox.Show("Lütfen önce bir þifreleme yöntemi seçin.", "Uyarý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -62,7 +67,6 @@ namespace cryptioALGO
                         break;
 
                     case "Permütasyon Þifreleme":
-                        // Permütasyonda anahtar kelime olduðu için dönüþtürmeye gerek yok
                         sonuc = SifrelemeAlgoritmalari.PermutasyonSifrele(girdi, anahtar);
                         break;
 
@@ -73,39 +77,40 @@ namespace cryptioALGO
                         break;
 
                     case "Doðrusal Þifreleme":
-                        // Doðrusal þifreleme 2 anahtar ister: a ve b
                         int a = Convert.ToInt32(anahtar);
                         int b = Convert.ToInt32(txtAnahtar2.Text);
                         sonuc = SifrelemeAlgoritmalari.DogrusalSifrele(girdi, a, b);
                         break;
 
                     case "Yer Deðiþtirme Þifreleme":
-                        // Anahtar 29 harfli karmaþýk bir alfabe olmalýdýr
                         sonuc = SifrelemeAlgoritmalari.YerDegistirmeSifrele(girdi, anahtar);
                         break;
 
                     case "Sayý Anahtarlý Þifreleme":
-                        // Örn: "3,1,4,2" metnini virgüllerden bölüp int dizisine çeviriyoruz
                         int[] sayiAnahtari = anahtar.Split(',').Select(int.Parse).ToArray();
                         sonuc = SifrelemeAlgoritmalari.SayiAnahtarliSifrele(girdi, sayiAnahtari);
                         break;
+
                     case "Vigenere Þifreleme":
-                        // Vigenere için tek bir anahtar kelime yeterli
                         sonuc = SifrelemeAlgoritmalari.VigenereSifrele(girdi, anahtar);
                         break;
 
                     case "Dört Kare Þifreleme":
-                        // Ýki anahtar kelime kullanýr (txtAnahtar1 ve txtAnahtar2)
                         string anahtar2 = txtAnahtar2.Text;
                         sonuc = SifrelemeAlgoritmalari.DortKareSifrele(girdi, anahtar, anahtar2);
                         break;
 
                     case "Hill Þifreleme":
-                        // 2x2 matris için 4 sayý almalýsýn. 
-                        // Örnek: Anahtar kutusuna "3,2,5,7" yazýldýðýný varsayýyorum
                         int[] h = anahtar.Split(',').Select(int.Parse).ToArray();
                         if (h.Length != 4) throw new Exception("Hill için 4 sayý girin (Örn: 3,2,5,7)");
                         sonuc = SifrelemeAlgoritmalari.HillSifrele(girdi, h[0], h[1], h[2], h[3]);
+                        break;
+
+                    // 2. DÜZELTME: RSA Þifreleme case'i eklendi
+                    case "RSA Þifreleme":
+                        int e_anahtar = Convert.ToInt32(anahtar);
+                        int n_anahtar = Convert.ToInt32(txtAnahtar2.Text);
+                        sonuc = SifrelemeAlgoritmalari.RsaSifrele(girdi, e_anahtar, n_anahtar);
                         break;
 
                     default:
@@ -113,7 +118,6 @@ namespace cryptioALGO
                         return;
                 }
 
-                // Sonucu ekrana yazdýr
                 txtCikti.Text = sonuc;
             }
             catch (FormatException)
@@ -131,7 +135,6 @@ namespace cryptioALGO
             string sifreliMetin = txtCikti.Text;
             string aliciMail = txtAliciMail.Text;
 
-            // Kural: E-postada anahtar / yöntem adý vb. olmayacak, sadece þifreli metin olacak.
             if (string.IsNullOrEmpty(sifreliMetin) || string.IsNullOrEmpty(aliciMail))
             {
                 MessageBox.Show("Lütfen önce bir metni þifreleyin ve alýcý e-posta adresini girin.", "Uyarý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -140,7 +143,6 @@ namespace cryptioALGO
 
             try
             {
-                // BURAYI KENDÝ BÝLGÝLERÝNLE DOLDUR
                 string gonderenMail = "mustafacanunal25@gmail.com";
                 string uygulamaSifresi = "rgzl bezj sazx psxl";
 
@@ -151,7 +153,7 @@ namespace cryptioALGO
                 MailMessage mesaj = new MailMessage();
                 mesaj.From = new MailAddress(gonderenMail);
                 mesaj.To.Add(aliciMail);
-                mesaj.Subject = "Kripto Odev - Gizli Mesaj"; // Ýndirirken bu baþlýðý arayacaðýz
+                mesaj.Subject = "Kripto Odev - Gizli Mesaj";
                 mesaj.Body = sifreliMetin;
 
                 client.Send(mesaj);
@@ -167,7 +169,6 @@ namespace cryptioALGO
         {
             try
             {
-                // ÝÞTE BURASI: Sadece formdaki TextBox'ýn içine bakar. E-posta ile ilgilenmez.
                 string girdi = txtGirdi.Text;
 
                 string secilenYontem = cmbYontem.SelectedItem != null ? cmbYontem.SelectedItem.ToString() : "";
@@ -207,23 +208,24 @@ namespace cryptioALGO
                     case "Vigenere Þifreleme":
                         sonuc = SifrelemeAlgoritmalari.VigenereCoz(girdi, anahtar);
                         break;
-
                     case "Dört Kare Þifreleme":
-                        // Þifreli metni, anahtar1 ve anahtar2'yi göndererek ÇÖZME metodunu çaðýrýyoruz
                         sonuc = SifrelemeAlgoritmalari.DortKareCoz(girdi, anahtar, txtAnahtar2.Text);
                         break;
-
                     case "Hill Þifreleme":
                         int[] hc = anahtar.Split(',').Select(int.Parse).ToArray();
-                        // Daha önce paylaþtýðým HillCoz metodunu SifrelemeAlgoritmalari sýnýfýna eklemiþ olman gerekir
                         sonuc = SifrelemeAlgoritmalari.HillCoz(girdi, hc[0], hc[1], hc[2], hc[3]);
                         break;
+                    case "RSA Þifreleme":
+                        int d_anahtar = Convert.ToInt32(anahtar); // Çözmek için d (gizli anahtar) gerekir
+                        int n_mod = Convert.ToInt32(txtAnahtar2.Text);
+                        sonuc = SifrelemeAlgoritmalari.RsaCoz(girdi, d_anahtar, n_mod);
+                        break;
+
                     default:
                         MessageBox.Show("Lütfen geçerli bir yöntem seçin.");
                         return;
                 }
 
-                // Çözülen metni alt kutuya yazdýr
                 txtCikti.Text = sonuc;
             }
             catch (Exception ex)
